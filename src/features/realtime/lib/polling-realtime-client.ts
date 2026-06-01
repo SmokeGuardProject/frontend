@@ -6,7 +6,7 @@ export function createPollingRealtimeClient(): RealtimeClient {
   let inFlight = false;
 
   async function scheduleNextTick(context: RealtimeContext) {
-    if (disposed) {
+    if (disposed || context.pollingIntervalMs <= 0) {
       return;
     }
 
@@ -44,7 +44,9 @@ export function createPollingRealtimeClient(): RealtimeClient {
         inFlight = false;
       }
 
-      await scheduleNextTick(context);
+      if (context.pollingIntervalMs > 0) {
+        await scheduleNextTick(context);
+      }
     },
 
     disconnect() {

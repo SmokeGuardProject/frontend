@@ -1,28 +1,15 @@
 import { io, type Socket } from 'socket.io-client';
 import { authStorage } from '@/features/auth/model/auth.storage';
-import type { RealtimeClient, RealtimeContext } from '@/features/realtime/model/realtime.types';
-
-const REALTIME_EVENTS = [
-  'sensor:reading',
-  'alarm:activated',
-  'alarm:deactivated',
-  'critical:event',
-];
+import type { NotificationItem } from '@/features/notifications/model/notification.types';
+import type {
+  AlarmRealtimePayload,
+  RealtimeClient,
+  RealtimeContext,
+  SensorReadingRealtimePayload,
+} from '@/features/realtime/model/realtime.types';
 
 export function createSocketRealtimeClient(): RealtimeClient {
   let socket: Socket | null = null;
-  let refreshTimerId: number | null = null;
-
-  function queueRefresh(context: RealtimeContext) {
-    if (refreshTimerId !== null) {
-      return;
-    }
-
-    refreshTimerId = window.setTimeout(() => {
-      refreshTimerId = null;
-      void context.refresh().catch(() => undefined);
-    }, 80);
-  }
 
   return {
     async connect(context: RealtimeContext) {
@@ -50,8 +37,6 @@ export function createSocketRealtimeClient(): RealtimeClient {
             settled = true;
             resolve();
           }
-
-          queueRefresh(context);
         };
 
         const handleError = (error: Error | { message?: string }) => {
@@ -70,20 +55,28 @@ export function createSocketRealtimeClient(): RealtimeClient {
         socket.on('socket:ready', handleReady);
         socket.on('connect_error', handleError);
         socket.on('socket:error', handleError);
-        socket.on('reconnect', () => queueRefresh(context));
 
-        for (const eventName of REALTIME_EVENTS) {
-          socket.on(eventName, () => queueRefresh(context));
-        }
+        socket.on('sensor:reading', (payload: SensorReadingRealtimePayload) => {
+          context.handleSensorReading(payload);
+        });
+
+        socket.on('alarm:activated', (payload: AlarmRealtimePayload) => {
+          context.handleAlarmChanged(payload);
+        });
+
+        socket.on('alarm:deactivated', (payload: AlarmRealtimePayload) => {
+          context.handleAlarmChanged(payload);
+        });
+
+        socket.on('critical:event', () => undefined);
+
+        socket.on('notification:created', (notification: NotificationItem) => {
+          context.handleNotificationCreated(notification);
+        });
       });
     },
 
     disconnect() {
-      if (refreshTimerId !== null) {
-        window.clearTimeout(refreshTimerId);
-        refreshTimerId = null;
-      }
-
       socket?.disconnect();
       socket = null;
     },

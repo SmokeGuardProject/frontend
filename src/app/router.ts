@@ -9,7 +9,7 @@ const routes = [
   {
     path: '/login',
     component: () => import('@/app/layouts/AuthLayout.vue'),
-    meta: { guestOnly: true, title: 'Login' },
+    meta: { guestOnly: true, title: 'Вхід' },
     children: [
       {
         path: '',
@@ -21,7 +21,7 @@ const routes = [
   {
     path: '/register',
     component: () => import('@/app/layouts/AuthLayout.vue'),
-    meta: { guestOnly: true, title: 'Register' },
+    meta: { guestOnly: true, title: 'Реєстрація' },
     children: [
       {
         path: '',
@@ -38,61 +38,61 @@ const routes = [
       {
         path: '/dashboard',
         name: 'dashboard',
-        meta: { title: 'System Dashboard' },
+        meta: { title: 'Дашборд' },
         component: () => import('@/pages/dashboard/DashboardPage.vue'),
       },
       {
         path: '/sensors',
         name: 'sensors',
-        meta: { title: 'Sensors' },
+        meta: { title: 'Сенсори' },
         component: () => import('@/pages/sensors/SensorsPage.vue'),
       },
       {
         path: '/sensors/new',
         name: 'sensors-new',
-        meta: { title: 'New Sensor' },
+        meta: { title: 'Новий сенсор' },
         component: () => import('@/pages/sensors/NewSensorPage.vue'),
       },
       {
         path: '/sensors/:id',
         name: 'sensor-details',
-        meta: { title: 'Sensor Details' },
+        meta: { title: 'Деталі сенсора' },
         component: () => import('@/pages/sensors/SensorDetailsPage.vue'),
       },
       {
         path: '/alarms',
         name: 'alarms',
-        meta: { title: 'Alarms' },
+        meta: { title: 'Сигналізації' },
         component: () => import('@/pages/alarms/AlarmsPage.vue'),
       },
       {
         path: '/alarms/new',
         name: 'alarms-new',
-        meta: { title: 'New Alarm' },
+        meta: { title: 'Нова сигналізація' },
         component: () => import('@/pages/alarms/NewAlarmPage.vue'),
       },
       {
         path: '/alarms/:id',
         name: 'alarm-details',
-        meta: { title: 'Alarm Details' },
+        meta: { title: 'Деталі сигналізації' },
         component: () => import('@/pages/alarms/AlarmDetailsPage.vue'),
       },
       {
         path: '/events',
         name: 'events',
-        meta: { title: 'Events' },
+        meta: { title: 'Події' },
         component: () => import('@/pages/events/EventsPage.vue'),
       },
       {
         path: '/notifications',
         name: 'notifications',
-        meta: { title: 'Notifications' },
+        meta: { title: 'Сповіщення' },
         component: () => import('@/pages/notifications/NotificationsPage.vue'),
       },
       {
         path: '/reports',
         name: 'reports',
-        meta: { title: 'Reports' },
+        meta: { title: 'Звіти' },
         component: () => import('@/pages/reports/ReportsPage.vue'),
       },
     ],

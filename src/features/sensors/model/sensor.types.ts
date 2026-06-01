@@ -35,6 +35,17 @@ export interface SensorReadingsFilters {
   endDate?: string;
 }
 
+export interface SensorReadingRealtimeData {
+  id?: number;
+  sensorId: number;
+  smokeDetected?: boolean;
+  smokeLevel?: number | null;
+  temperature?: number | null;
+  humidity?: number | null;
+  timestamp?: string;
+  createdAt?: string;
+}
+
 export interface CreateSensorPayload {
   location: string;
   floor?: number | null;
@@ -50,5 +61,10 @@ export interface UpdateSensorPayload {
 
 export interface CreateSensorResponse {
   sensor: Sensor;
+  sensorCode: string;
+}
+
+export interface CreatedSensorSuccessData {
+  sensorId: number | string;
   sensorCode: string;
 }

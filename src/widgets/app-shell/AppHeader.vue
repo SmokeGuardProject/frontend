@@ -31,8 +31,12 @@ async function handleLogout() {
 
     <div class="app-header__actions">
       <NotificationCenter />
-      <span class="app-header__meta">{{ userName }}</span>
+      <div class="app-header__user">
+        <span class="app-header__meta">Адміністратор</span>
+        <strong>{{ userName }}</strong>
+      </div>
       <AppButton
+        class="app-header__logout"
         variant="ghost"
         @click="handleLogout"
       >

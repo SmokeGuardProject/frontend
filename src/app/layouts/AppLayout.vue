@@ -8,6 +8,8 @@ import { useAuthStore } from '@/features/auth/model/use-auth-store';
 import { useRealtimeStore } from '@/features/realtime/model/use-realtime-store';
 import AppAlert from '@/shared/ui/AppAlert.vue';
 import AppButton from '@/shared/ui/AppButton.vue';
+import AppToast from '@/shared/ui/AppToast.vue';
+import SmokeEmergencyModal from '@/widgets/emergency/SmokeEmergencyModal.vue';
 
 const authStore = useAuthStore();
 const realtimeStore = useRealtimeStore();
@@ -18,6 +20,9 @@ const pageTitle = computed(() => String(route.meta.title ?? 'SmokeGuard'));
 
 <template>
   <div class="app-shell">
+    <AppToast />
+    <SmokeEmergencyModal />
+
     <AppSidebar />
 
     <div class="app-shell__main">

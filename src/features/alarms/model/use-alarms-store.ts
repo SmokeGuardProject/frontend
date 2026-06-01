@@ -14,6 +14,8 @@ export const useAlarmsStore = defineStore('alarms', () => {
   const currentAlarm = ref<Alarm | null>(null);
   const filters = ref<AlarmFilters>({
     status: '',
+    floor: null,
+    building: '',
     offset: 0,
     limit: 100,
   });
@@ -24,6 +26,8 @@ export const useAlarmsStore = defineStore('alarms', () => {
   const detailError = ref('');
   const submitError = ref('');
   const actionError = ref('');
+  const bulkActionLoading = ref<'activate-all' | 'deactivate-all' | null>(null);
+  const listRequestId = ref(0);
   const activeAction = ref<{ alarmId: number; type: 'activate' | 'deactivate' | 'delete' | null }>({
     alarmId: 0,
     type: null,
@@ -33,6 +37,8 @@ export const useAlarmsStore = defineStore('alarms', () => {
   const inactiveCount = computed(() => alarms.value.filter((alarm) => alarm.status === 'inactive').length);
 
   async function fetchAlarms(nextFilters?: AlarmFilters) {
+    const requestId = listRequestId.value + 1;
+    listRequestId.value = requestId;
     listLoading.value = true;
     listError.value = '';
 
@@ -44,12 +50,20 @@ export const useAlarmsStore = defineStore('alarms', () => {
         };
       }
 
-      alarms.value = await alarmsApi.getAlarms(normalizeAlarmFilters(filters.value));
+      const nextAlarms = await alarmsApi.getAlarms(normalizeAlarmFilters(filters.value));
+
+      if (requestId === listRequestId.value) {
+        alarms.value = nextAlarms;
+      }
     } catch (error) {
-      listError.value = normalizeApiError(error, 'Failed to load alarms.');
-      throw error;
+      if (requestId === listRequestId.value) {
+        listError.value = normalizeApiError(error, 'Failed to load alarms.');
+        throw error;
+      }
     } finally {
-      listLoading.value = false;
+      if (requestId === listRequestId.value) {
+        listLoading.value = false;
+      }
     }
   }
 
@@ -150,6 +164,42 @@ export const useAlarmsStore = defineStore('alarms', () => {
     }
   }
 
+  async function activateAllAlarms() {
+    bulkActionLoading.value = 'activate-all';
+    actionError.value = '';
+
+    try {
+      const result = await alarmsApi.activateAllAlarms();
+      await fetchAlarms();
+      return result;
+    } catch (error) {
+      actionError.value = normalizeApiError(error, 'Failed to activate all alarms.');
+      throw error;
+    } finally {
+      bulkActionLoading.value = null;
+    }
+  }
+
+  async function deactivateAllAlarms() {
+    bulkActionLoading.value = 'deactivate-all';
+    actionError.value = '';
+
+    try {
+      const result = await alarmsApi.deactivateAllAlarms();
+      await fetchAlarms();
+      return result;
+    } catch (error) {
+      actionError.value = normalizeApiError(error, 'Failed to deactivate all alarms.');
+      throw error;
+    } finally {
+      bulkActionLoading.value = null;
+    }
+  }
+
+  function isBulkActionPending(type: 'activate-all' | 'deactivate-all') {
+    return bulkActionLoading.value === type;
+  }
+
   function isActionPending(alarmId: number, type?: 'activate' | 'deactivate' | 'delete') {
     if (type) {
       return activeAction.value.alarmId === alarmId && activeAction.value.type === type;
@@ -160,9 +210,47 @@ export const useAlarmsStore = defineStore('alarms', () => {
 
   function syncAlarm(alarm: Alarm) {
     currentAlarm.value = currentAlarm.value?.id === alarm.id ? alarm : currentAlarm.value;
+
+    if (!alarmMatchesFilters(alarm, filters.value)) {
+      alarms.value = alarms.value.filter((item) => item.id !== alarm.id);
+      return;
+    }
+
     alarms.value = alarms.value.some((item) => item.id === alarm.id)
       ? alarms.value.map((item) => (item.id === alarm.id ? alarm : item))
       : [alarm, ...alarms.value];
+  }
+
+  function updateAlarmFromRealtime(payload: {
+    alarmId: number;
+    status?: Alarm['status'];
+    activatedAt?: string | null;
+    deactivatedAt?: string | null;
+    timestamp?: string;
+    building?: string | null;
+    floor?: number | null;
+    location?: string;
+    sensorId?: number;
+  }) {
+    const patchAlarm = (alarm: Alarm): Alarm => ({
+      ...alarm,
+      status: payload.status ?? alarm.status,
+      activatedAt: payload.activatedAt ?? alarm.activatedAt,
+      deactivatedAt: payload.deactivatedAt ?? alarm.deactivatedAt,
+      updatedAt: payload.timestamp ?? alarm.updatedAt,
+      building: payload.building ?? alarm.building,
+      floor: payload.floor ?? alarm.floor,
+      location: payload.location ?? alarm.location,
+      sensorId: payload.sensorId ?? alarm.sensorId,
+    });
+
+    alarms.value = alarms.value
+      .map((alarm) => (alarm.id === payload.alarmId ? patchAlarm(alarm) : alarm))
+      .filter((alarm) => alarm.id !== payload.alarmId || alarmMatchesFilters(alarm, filters.value));
+
+    if (currentAlarm.value?.id === payload.alarmId) {
+      currentAlarm.value = patchAlarm(currentAlarm.value);
+    }
   }
 
   return {
@@ -178,13 +266,18 @@ export const useAlarmsStore = defineStore('alarms', () => {
     listLoading,
     submitError,
     submitLoading,
+    bulkActionLoading,
     activateAlarm,
+    activateAllAlarms,
     createAlarm,
     deactivateAlarm,
+    deactivateAllAlarms,
     deleteAlarm,
     fetchAlarm,
     fetchAlarms,
     isActionPending,
+    isBulkActionPending,
+    updateAlarmFromRealtime,
     updateAlarm,
   };
 });
@@ -192,7 +285,31 @@ export const useAlarmsStore = defineStore('alarms', () => {
 function normalizeAlarmFilters(filters: AlarmFilters) {
   return {
     ...(filters.status ? { status: filters.status } : {}),
+    ...(typeof filters.floor === 'number' && !Number.isNaN(filters.floor)
+      ? { floor: filters.floor }
+      : {}),
+    ...(filters.building?.trim() ? { building: filters.building.trim() } : {}),
     ...(typeof filters.offset === 'number' ? { offset: filters.offset } : {}),
     ...(typeof filters.limit === 'number' ? { limit: filters.limit } : {}),
   };
+}
+
+function alarmMatchesFilters(alarm: Alarm, filters: AlarmFilters) {
+  if (filters.status && alarm.status !== filters.status) {
+    return false;
+  }
+
+  if (
+    typeof filters.floor === 'number' &&
+    !Number.isNaN(filters.floor) &&
+    alarm.floor !== filters.floor
+  ) {
+    return false;
+  }
+
+  if (filters.building?.trim() && alarm.building !== filters.building.trim()) {
+    return false;
+  }
+
+  return true;
 }

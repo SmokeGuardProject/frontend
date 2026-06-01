@@ -2,6 +2,7 @@ import { apiClient } from '@/shared/api/client';
 import type {
   Alarm,
   AlarmFilters,
+  BulkAlarmActionResult,
   CreateAlarmPayload,
   UpdateAlarmPayload,
 } from '@/features/alarms/model/alarm.types';
@@ -40,6 +41,16 @@ export const alarmsApi = {
 
   async deactivateAlarm(id: number) {
     const { data } = await apiClient.post<Alarm>(`/alarms/${id}/deactivate`);
+    return data;
+  },
+
+  async activateAllAlarms() {
+    const { data } = await apiClient.post<BulkAlarmActionResult>('/alarms/activate-all');
+    return data;
+  },
+
+  async deactivateAllAlarms() {
+    const { data } = await apiClient.post<BulkAlarmActionResult>('/alarms/deactivate-all');
     return data;
   },
 };

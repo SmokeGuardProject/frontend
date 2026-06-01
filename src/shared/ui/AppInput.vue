@@ -7,11 +7,16 @@ defineProps<{
   placeholder?: string;
   autocomplete?: string;
   required?: boolean;
+  error?: string;
+  helperText?: string;
 }>();
 </script>
 
 <template>
-  <label class="form-field">
+  <label
+    class="form-field"
+    :class="{ 'form-field--error': error }"
+  >
     <span class="form-field__label">{{ label }}</span>
     <input
       v-model="model"
@@ -20,6 +25,19 @@ defineProps<{
       :placeholder="placeholder"
       :autocomplete="autocomplete"
       :required="required"
+      :aria-invalid="error ? 'true' : 'false'"
     >
+    <span
+      v-if="error"
+      class="form-field__error"
+    >
+      {{ error }}
+    </span>
+    <span
+      v-else-if="helperText"
+      class="form-field__helper"
+    >
+      {{ helperText }}
+    </span>
   </label>
 </template>

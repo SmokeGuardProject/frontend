@@ -1,27 +1,27 @@
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   font-family:
     "IBM Plex Sans",
     "Segoe UI",
     sans-serif;
-  --bg-app: #07111a;
-  --bg-elevated: #0d1824;
-  --bg-surface: #122131;
-  --bg-surface-strong: #16283a;
-  --bg-hover: #1b3045;
-  --line-soft: rgba(140, 176, 204, 0.14);
-  --line-strong: rgba(140, 176, 204, 0.28);
-  --text-primary: #eaf4fb;
-  --text-secondary: #8fa6ba;
-  --text-muted: #6e8397;
-  --accent-primary: #23d3a8;
-  --accent-primary-soft: rgba(35, 211, 168, 0.12);
-  --accent-info: #36c4ff;
-  --accent-warning: #f4c95d;
-  --accent-warning-soft: rgba(244, 201, 93, 0.16);
-  --accent-danger: #ff5d6c;
-  --accent-danger-soft: rgba(255, 93, 108, 0.16);
-  --shadow-panel: 0 10px 24px rgba(0, 0, 0, 0.18);
+  --bg-app: #f4f7f4;
+  --bg-elevated: #ffffff;
+  --bg-surface: #fcfefd;
+  --bg-surface-strong: #f7faf8;
+  --bg-hover: #eff6f2;
+  --line-soft: rgba(15, 23, 42, 0.08);
+  --line-strong: rgba(15, 23, 42, 0.14);
+  --text-primary: #152033;
+  --text-secondary: #556274;
+  --text-muted: #7a8798;
+  --accent-primary: #138a63;
+  --accent-primary-soft: rgba(19, 138, 99, 0.1);
+  --accent-info: #0f766e;
+  --accent-warning: #f59e0b;
+  --accent-warning-soft: rgba(245, 158, 11, 0.12);
+  --accent-danger: #ef4444;
+  --accent-danger-soft: rgba(239, 68, 68, 0.12);
+  --shadow-panel: 0 18px 40px rgba(15, 23, 42, 0.06);
   --radius-sm: 12px;
   --radius-md: 18px;
   --radius-lg: 24px;

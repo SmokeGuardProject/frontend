@@ -29,12 +29,16 @@ export const useEventsStore = defineStore('events', () => {
   const listError = ref('');
   const detailError = ref('');
   const statisticsError = ref('');
+  let latestListRequestId = 0;
 
   const criticalEventsCount = computed(
     () => statistics.value.byType.smoke_detected + statistics.value.byType.alarm_activated,
   );
 
-  async function fetchEvents(nextFilters?: EventFilters) {
+  async function fetchEvents(nextFilters?: EventFilters, options: { reset?: boolean } = {}) {
+    const requestId = ++latestListRequestId;
+    const shouldReset = options.reset ?? true;
+
     listLoading.value = true;
     listError.value = '';
 
@@ -46,13 +50,42 @@ export const useEventsStore = defineStore('events', () => {
         };
       }
 
-      events.value = await eventsApi.getEvents(normalizeFilters(filters.value));
+      const nextEvents = await eventsApi.getEvents(normalizeFilters(filters.value));
+
+      if (requestId !== latestListRequestId) {
+        return [];
+      }
+
+      events.value = shouldReset ? dedupeEvents(nextEvents) : dedupeEvents([...events.value, ...nextEvents]);
+
+      return nextEvents;
     } catch (error) {
+      if (requestId !== latestListRequestId) {
+        return [];
+      }
+
       listError.value = normalizeApiError(error, 'Failed to load events.');
       throw error;
     } finally {
-      listLoading.value = false;
+      if (requestId === latestListRequestId) {
+        listLoading.value = false;
+      }
     }
+  }
+
+  function prependEvent(event: EventItem) {
+    if (filters.value.eventType && filters.value.eventType !== event.eventType) {
+      return;
+    }
+
+    events.value = dedupeEvents([event, ...events.value]);
+    statistics.value = {
+      total: statistics.value.total + 1,
+      byType: {
+        ...statistics.value.byType,
+        [event.eventType]: statistics.value.byType[event.eventType] + 1,
+      },
+    };
   }
 
   async function fetchEvent(id: number) {
@@ -98,6 +131,7 @@ export const useEventsStore = defineStore('events', () => {
     fetchEvent,
     fetchEvents,
     fetchStatistics,
+    prependEvent,
   };
 });
 
@@ -107,4 +141,17 @@ function normalizeFilters(filters: EventFilters) {
     ...(typeof filters.offset === 'number' ? { offset: filters.offset } : {}),
     ...(typeof filters.limit === 'number' ? { limit: filters.limit } : {}),
   };
+}
+
+function dedupeEvents(events: EventItem[]) {
+  const seen = new Set<number>();
+
+  return events.filter((event) => {
+    if (seen.has(event.id)) {
+      return false;
+    }
+
+    seen.add(event.id);
+    return true;
+  });
 }

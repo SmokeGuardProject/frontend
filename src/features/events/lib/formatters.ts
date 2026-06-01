@@ -3,13 +3,13 @@ import type { EventType } from '@/features/events/model/event.types';
 export function formatEventType(eventType: EventType) {
   switch (eventType) {
     case 'smoke_detected':
-      return 'Smoke detected';
+      return 'Виявлено дим';
     case 'smoke_cleared':
-      return 'Smoke cleared';
+      return 'Дим зник';
     case 'alarm_activated':
-      return 'Alarm activated';
+      return 'Сигналізація активована';
     case 'alarm_deactivated':
-      return 'Alarm deactivated';
+      return 'Сигналізація деактивована';
   }
 }
 

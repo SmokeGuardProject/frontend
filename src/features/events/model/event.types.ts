@@ -1,4 +1,5 @@
 import type { Sensor } from '@/features/sensors/model/sensor.types';
+import type { Alarm } from '@/features/alarms/model/alarm.types';
 
 export type EventType =
   | 'smoke_detected'
@@ -11,6 +12,7 @@ export interface EventItem {
   sensorId: number | null;
   eventType: EventType;
   createdAt: string;
+  alarm?: Alarm | null;
   sensor?: Sensor | null;
 }
 

@@ -7,6 +7,7 @@ import { normalizeApiError } from '@/shared/api/normalize-api-error';
 export const useReportsStore = defineStore('reports', () => {
   const isGenerating = ref(false);
   const lastFilename = ref('');
+  const lastGeneratedAt = ref('');
   const successMessage = ref('');
   const errorMessage = ref('');
 
@@ -22,6 +23,7 @@ export const useReportsStore = defineStore('reports', () => {
       downloadBlob(blob, filename);
 
       lastFilename.value = filename;
+      lastGeneratedAt.value = new Date().toISOString();
       successMessage.value = `Звіт ${filename} успішно згенеровано.`;
     } catch (error) {
       errorMessage.value = normalizeApiError(
@@ -43,6 +45,7 @@ export const useReportsStore = defineStore('reports', () => {
     errorMessage,
     isGenerating,
     lastFilename,
+    lastGeneratedAt,
     successMessage,
     clearMessages,
     generateReport,

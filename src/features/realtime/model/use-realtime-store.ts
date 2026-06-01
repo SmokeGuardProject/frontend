@@ -3,21 +3,20 @@ import { defineStore } from 'pinia';
 import { router } from '@/app/router';
 import { createSocketRealtimeClient } from '@/features/realtime/lib/socket-realtime-client';
 import type {
+  AlarmRealtimePayload,
   RealtimeClient,
   RealtimeMode,
   RealtimeState,
+  SensorReadingRealtimePayload,
 } from '@/features/realtime/model/realtime.types';
 import { useAlarmsStore } from '@/features/alarms/model/use-alarms-store';
 import { useEventsStore } from '@/features/events/model/use-events-store';
+import type { NotificationItem } from '@/features/notifications/model/notification.types';
 import { useNotificationsStore } from '@/features/notifications/model/use-notifications-store';
+import { useSmokeEmergencyStore } from '@/features/emergency/model/use-smoke-emergency-store';
 import { useSensorsStore } from '@/features/sensors/model/use-sensors-store';
 
 export const useRealtimeStore = defineStore('realtime', () => {
-  const sensorsStore = useSensorsStore();
-  const alarmsStore = useAlarmsStore();
-  const eventsStore = useEventsStore();
-  const notificationsStore = useNotificationsStore();
-
   const mode = ref<RealtimeMode>(resolveRealtimeMode());
   const state = ref<RealtimeState>('idle');
   const errorMessage = ref('');
@@ -39,6 +38,9 @@ export const useRealtimeStore = defineStore('realtime', () => {
 
     try {
       await client.value.connect({
+        handleAlarmChanged,
+        handleNotificationCreated,
+        handleSensorReading,
         pollingIntervalMs,
         refresh,
       });
@@ -88,6 +90,30 @@ export const useRealtimeStore = defineStore('realtime', () => {
     }
   }
 
+  function handleNotificationCreated(notification: NotificationItem) {
+    useNotificationsStore().prependNotification(notification);
+    useSmokeEmergencyStore().openFromNotification(notification);
+
+    if (notification.event) {
+      useEventsStore().prependEvent(notification.event);
+    }
+  }
+
+  function handleSensorReading(payload: SensorReadingRealtimePayload) {
+    const sensorsStore = useSensorsStore();
+
+    sensorsStore.updateSensorFromRealtime(payload);
+    sensorsStore.prependReadingFromRealtime(payload);
+    lastSyncedAt.value = new Date().toISOString();
+    state.value = 'active';
+  }
+
+  function handleAlarmChanged(payload: AlarmRealtimePayload) {
+    useAlarmsStore().updateAlarmFromRealtime(payload);
+    lastSyncedAt.value = new Date().toISOString();
+    state.value = 'active';
+  }
+
   return {
     errorMessage,
     isStarted,
@@ -105,6 +131,10 @@ function resolveRefreshTasks() {
   const currentRoute = router.currentRoute.value;
   const routeName = String(currentRoute.name ?? '');
   const currentId = Number(currentRoute.params.id);
+  const notificationTasks = [
+    useNotificationsStore().fetchNotificationPreview({ offset: 0, limit: 5 }),
+    useNotificationsStore().fetchUnreadCount(),
+  ];
 
   switch (routeName) {
     case 'dashboard':
@@ -113,26 +143,34 @@ function resolveRefreshTasks() {
         useAlarmsStore().fetchAlarms(useAlarmsStore().filters),
         useEventsStore().fetchEvents(useEventsStore().filters),
         useEventsStore().fetchStatistics(),
-        useNotificationsStore().fetchNotifications(useNotificationsStore().filters),
-        useNotificationsStore().fetchUnreadCount(),
+        ...notificationTasks,
       ];
     case 'sensors':
     case 'sensor-details':
     case 'sensors-new':
       if (routeName === 'sensor-details' && Number.isInteger(currentId) && currentId > 0) {
+        const endDate = new Date();
+        const startDate = new Date(endDate.getTime() - 15 * 60 * 1000);
+
         return [
           useSensorsStore().fetchSensor(currentId),
-          useSensorsStore().fetchReadings(currentId, {
+          useSensorsStore().fetchTableReadings(currentId, {
             offset: 0,
-            limit: 100,
+            limit: 20,
           }),
-          useNotificationsStore().fetchUnreadCount(),
+          useSensorsStore().fetchChartReadings(currentId, {
+            offset: 0,
+            limit: 500,
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+          }),
+          ...notificationTasks,
         ];
       }
 
       return [
         useSensorsStore().fetchSensors(useSensorsStore().filters),
-        useNotificationsStore().fetchUnreadCount(),
+        ...notificationTasks,
       ];
     case 'alarms':
     case 'alarm-details':
@@ -141,33 +179,30 @@ function resolveRefreshTasks() {
         return [
           useAlarmsStore().fetchAlarm(currentId),
           useSensorsStore().fetchSensors(useSensorsStore().filters),
-          useNotificationsStore().fetchUnreadCount(),
+          ...notificationTasks,
         ];
       }
 
       return [
         useSensorsStore().fetchSensors(useSensorsStore().filters),
         useAlarmsStore().fetchAlarms(useAlarmsStore().filters),
-        useNotificationsStore().fetchUnreadCount(),
+        ...notificationTasks,
       ];
     case 'events':
       return [
         useEventsStore().fetchEvents(useEventsStore().filters),
         useEventsStore().fetchStatistics(),
-        useNotificationsStore().fetchUnreadCount(),
+        ...notificationTasks,
       ];
     case 'notifications':
-      return [
-        useNotificationsStore().fetchNotifications(useNotificationsStore().filters),
-        useNotificationsStore().fetchUnreadCount(),
-      ];
+      return [];
     case 'reports':
       return [
         useSensorsStore().fetchSensors(useSensorsStore().filters),
-        useNotificationsStore().fetchUnreadCount(),
+        ...notificationTasks,
       ];
     default:
-      return [useNotificationsStore().fetchUnreadCount()];
+      return notificationTasks;
   }
 }
 
