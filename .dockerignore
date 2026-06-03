@@ -1,0 +1,13 @@
+.git
+.github
+.idea
+.agents
+.codex
+node_modules
+dist
+coverage
+npm-debug.log
+.env
+.env.*
+*.md
+Шлях до розташування бекенду.txt
