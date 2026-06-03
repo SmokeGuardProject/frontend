@@ -6,7 +6,7 @@ services:
     container_name: smokeguard-frontend
     restart: always
     ports:
-      - '${FRONTEND_PORT:-8080}:80'
+      - '${FRONTEND_PORT:-8081}:80'
     networks:
       - smokeguard-frontend-network
 
